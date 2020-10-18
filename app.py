@@ -2,6 +2,8 @@ import json
 import logging
 import time
 from os import environ
+from queue import Queue
+from threading import Thread
 
 import requests
 import tweepy
@@ -31,6 +33,11 @@ logging.basicConfig(filename='app.log',
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+class Job:
+    def __init__(self, payload):
+        self.payload = payload
+
+
 def is_negative(tweet):
     t = TextBlob(tweet)
     if t.sentiment.polarity <= 0:
@@ -54,10 +61,12 @@ def authorize_v1(api_key, api_secret, access_token, access_token_secret):
     return api
 
 
-def tweet_v1(api, text, text_id, author):
+def tweet_v1(consume):
+    api, text, text_id, author = consume
     if is_negative(text):
-        api.update_status(status=f"@{author} {DEFAULT_MESSAGE}",
-                          in_reply_to_status_id=text_id)
+        # api.update_status(status=f"@{author} {DEFAULT_MESSAGE}",
+        #                   in_reply_to_status_id=text_id)
+        print(f"@{author} {text}")
 
 
 def get_rules(headers, bearer_token):
@@ -112,7 +121,7 @@ def set_rules(headers, delete, bearer_token):
     print(json.dumps(response.json()))
 
 
-def get_stream(headers, set, bearer_token, api):
+def get_stream(headers, set, bearer_token, api, q):
 
     response = requests.get(
         "https://api.twitter.com/2/tweets/search/stream?expansions=author_id",
@@ -123,7 +132,7 @@ def get_stream(headers, set, bearer_token, api):
 
     if response.status_code != 200:
         if response.status_code == 429:
-            print("Too many requests")
+            logging.warning("Too many requests. Waiting...")
             time.sleep(900)
         else:
             logging.error(
@@ -139,10 +148,17 @@ def get_stream(headers, set, bearer_token, api):
             text = json_response['data']['text']
             text_id = json_response['data']['id']
             author = json_response['includes']['users'][0]['username']
+            q.put(Job((api, text, text_id, author)))
 
-            tweet_v1(api, text, text_id, author)
-            print(f"@{author} {text}")
+            # print(f"@{author} {text}")
             print()
+
+
+def queueconsumer(q):
+    while True:
+        job = q.get(block=True)
+        payload = job.payload
+        tweet_v1(payload)
 
 
 def main():
@@ -152,13 +168,22 @@ def main():
     api_secret = API_SECRET
     access_token = ACCESS_TOKEN
     access_token_secret = ACCESS_TOKEN_SECRET
+    q = Queue(maxsize=10)
 
     headers = create_headers(bearer_token)
     api = authorize_v1(api_key, api_secret, access_token, access_token_secret)
     rules = get_rules(headers, bearer_token)
     delete = delete_all_rules(headers, bearer_token, rules)
     set_ = set_rules(headers, delete, bearer_token)
-    get_stream(headers, set_, bearer_token, api)
+
+    t1 = Thread(target=get_stream, args=(headers, set_, bearer_token, api, q))
+    t2 = Thread(target=queueconsumer, args=(q, ))
+
+    t1.start()
+    t2.start()
+
+    t1.join()
+    t2.join()
 
 
 if __name__ == "__main__":
