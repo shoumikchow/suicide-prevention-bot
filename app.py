@@ -11,7 +11,7 @@ from textblob import TextBlob
 
 BEARER = environ['bearer']
 API_KEY = environ['api_key']
-CONSUMER_SECRET = environ['consumer_secret']
+API_SECRET = environ['api_secret']
 ACCESS_TOKEN = environ['access_token']
 ACCESS_TOKEN_SECRET = environ['access_token_secret']
 
@@ -64,9 +64,8 @@ def authorize_v1(api_key, api_secret, access_token, access_token_secret):
 def tweet_v1(consume):
     api, text, text_id, author = consume
     if is_negative(text):
-        # api.update_status(status=f"@{author} {DEFAULT_MESSAGE}",
-        #                   in_reply_to_status_id=text_id)
-        print(f"@{author} {text}")
+        api.update_status(status=f"@{author} {DEFAULT_MESSAGE}",
+                          in_reply_to_status_id=text_id)
 
 
 def get_rules(headers, bearer_token):
