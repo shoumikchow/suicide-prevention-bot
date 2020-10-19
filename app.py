@@ -1,6 +1,5 @@
 import json
 import logging
-import time
 from os import environ
 from queue import Queue
 from threading import Thread
@@ -132,7 +131,6 @@ def get_stream(headers, set, bearer_token, api, q):
     if response.status_code != 200:
         if response.status_code == 429:
             logging.warning("Too many requests. Waiting...")
-            time.sleep(900)
         else:
             logging.error(
                 f"Cannot get stream (HTTP {response.status_code}): {response.text}",
