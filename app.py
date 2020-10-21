@@ -1,6 +1,6 @@
 import json
 import logging
-from os import environ
+import os
 from queue import Queue
 from threading import Thread
 
@@ -8,11 +8,11 @@ import requests
 import tweepy
 from textblob import TextBlob
 
-BEARER = environ['bearer']
-API_KEY = environ['api_key']
-API_SECRET = environ['api_secret']
-ACCESS_TOKEN = environ['access_token']
-ACCESS_TOKEN_SECRET = environ['access_token_secret']
+BEARER = os.environ.get('BEARER', None)
+API_KEY = os.environ.get('API_KEY', None)
+API_SECRET = os.environ.get('API_SECRET', None)
+ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN', None)
+ACCESS_TOKEN_SECRET = os.environ.get('ACCESS_TOKEN_SECRET', None)
 
 KEYWORDS = [{
     'value': '"kill myself" -is:retweet -is:quote',
