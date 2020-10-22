@@ -7,6 +7,7 @@ from threading import Thread
 import requests
 import tweepy
 from textblob import TextBlob
+from textblob.sentiments import NaiveBayesAnalyzer
 
 BEARER = os.environ.get('BEARER', None)
 API_KEY = os.environ.get('API_KEY', None)
@@ -38,8 +39,8 @@ class Job:
 
 
 def is_negative(tweet):
-    t = TextBlob(tweet)
-    if t.sentiment.polarity <= 0:
+    t = TextBlob(tweet, analyzer=NaiveBayesAnalyzer())
+    if t.sentiment.polarity.classification =="neg":
         return True
 
 
